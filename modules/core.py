@@ -115,7 +115,8 @@ def default_process():
                 dashboard_config.drain_advised = False
 
             # Send Measured Values to Server
-            send_data_to_server(weatherData, waterlevel_new, total_surface_area,drain_timestamp)
+            send_data_to_server(weatherData, waterlevel_new, total_surface_area, drain_timestamp)
+            send_data_to_university(weatherData, waterlevel_new, total_surface_area, drain_timestamp)
 
             # Set Database Values
             dbEntry.date = weatherData.date
@@ -228,6 +229,33 @@ def send_data_to_server(weatherData, waterlevel_new, total_surface_area, param_d
     json_data = json.dumps(data)
 
     url = 'https://swat.itwh.de/Vorhersage/PostRegentonneData'
+
+    response = requests.post(url, data=json_data, headers={'Content-Type': 'application/json'})
+
+    if response.status_code == 200:
+        print("Data sent successfully")
+        print("Response:", response.json())
+    else:
+        print("Failed to send data")
+        print("Status Code:", response.status_code)
+        print("Response:", response.text)
+
+def send_data_to_university(weatherData, waterlevel_new, total_surface_area, param_drain_timestamp):
+    data = {
+        "messungsZeit": weatherData.date,
+        "lat": weatherData.latitude,
+        "lon": weatherData.longitude,
+        "dachflaeche": total_surface_area,
+        "gemessen": waterlevel_new,
+        "regenvorhersage": weatherData.projected_ppt,
+        "entwaesserung": dashboard_config.is_draining,
+        "entwaesserungsZeit": param_drain_timestamp,
+        "macAdresse": dashboard_config.mac_address,
+    }
+
+    json_data = json.dumps(data)
+
+    url = 'https://wisdom.uol.de/api/brain-tank/v1/insert'
 
     response = requests.post(url, data=json_data, headers={'Content-Type': 'application/json'})
 
